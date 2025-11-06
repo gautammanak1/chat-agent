@@ -4,4 +4,8 @@ requests
 cloudinary
 matplotlib
 numpy
+wordcloud
+networkx
+scipy
+pandas
 

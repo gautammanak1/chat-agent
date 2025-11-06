@@ -1,0 +1,7 @@
+uagents
+python-dotenv
+requests
+cloudinary
+matplotlib
+numpy
+

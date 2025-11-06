@@ -55,19 +55,47 @@ def get_asi_chart_code(api_key: str, prompt: str) -> str:
         "Authorization": f"Bearer {api_key}"
     }
     
-    system_prompt = """You are a Python chart generation expert. Generate Python code using matplotlib and numpy to create charts based on user requests.
+    system_prompt = """You are a Python chart generation expert. Generate Python code to create various types of charts based on user requests.
+
+Supported Chart Types:
+- Area charts: Use plt.fill_between() or plt.stackplot()
+- Bar charts: Use plt.bar() or plt.barh()
+- Box plots: Use plt.boxplot()
+- Column charts: Use plt.bar() (vertical bars)
+- Dual axes charts: Use plt.twinx() or plt.twiny()
+- Histograms: Use plt.hist()
+- Line charts: Use plt.plot()
+- Pie charts: Use plt.pie()
+- Radar charts: Use matplotlib with polar coordinates (plt.subplot(projection='polar'))
+- Sankey diagrams: Use matplotlib.sankey.Sankey correctly
+- Scatter plots: Use plt.scatter()
+- Treemap: Use squarify library or matplotlib patches
+- Venn diagrams: Use matplotlib_venn or matplotlib patches
+- Violin plots: Use plt.violinplot()
+- Word clouds: Use wordcloud.WordCloud() - import wordcloud; wc = wordcloud.WordCloud(); wc.generate_from_text() or wc.generate_from_frequencies()
+- Network graphs: Use networkx with matplotlib - import networkx as nx; G = nx.Graph(); nx.draw(G, ax=plt.gca())
+- Flowcharts: Use matplotlib patches and annotations
+- Funnel charts: Use plt.barh() with decreasing widths
+- Mind maps: Use networkx with hierarchical layout
+- Organization charts: Use networkx with hierarchical layout
+- Fishbone diagrams: Use matplotlib with arrows and text annotations
+- Liquid charts: Use matplotlib with circle patches and fill
+- 3D surface charts: Use mpl_toolkits.mplot3d.Axes3D
 
 Requirements:
-- Use matplotlib.pyplot for all charts
-- Use numpy for data generation if needed
-- Set matplotlib backend to 'Agg' (non-interactive) before importing pyplot: import matplotlib; matplotlib.use('Agg')
-- Do NOT use plt.savefig() - just create the charts with plt.figure(), plt.plot(), plt.bar(), etc.
-- Use plt.show() is NOT needed - charts will be captured automatically
+- Set matplotlib backend to 'Agg' (non-interactive): import matplotlib; matplotlib.use('Agg')
+- Import required libraries: matplotlib.pyplot as plt, numpy as np, wordcloud (for word clouds), networkx as nx (for graphs)
+- Do NOT use plt.savefig() - just create the charts
+- Do NOT use plt.show() - charts will be captured automatically
 - Include proper titles, axis labels, and formatting
 - Output ONLY the Python code in a code block
 - No explanations, no comments, just raw Python code
 - Generate realistic sample data if specific data is not provided
-- Do NOT save files - just create matplotlib figures"""
+- Do NOT save files - just create matplotlib figures
+- Always initialize variables properly before using them
+- For word clouds: Use wordcloud.WordCloud().generate_from_frequencies() or .generate()
+- For network graphs: Use networkx.Graph() or networkx.DiGraph() with nx.draw()
+- For Sankey: Sankey() returns a Sankey object, not a list"""
     
     enhanced_prompt = f"""Generate Python code using matplotlib to create: {prompt}
 
@@ -139,19 +167,76 @@ def execute_and_upload_chart(code: str, ctx: Context = None) -> Tuple[bool, str,
     chart_urls = []
     
     try:
-        # Create a namespace for code execution
+        # Create a namespace for code execution with common libraries
         namespace = {
             'plt': plt,
             'np': np,
+            'numpy': np,
             'matplotlib': matplotlib,
             '__builtins__': __builtins__
         }
         
+        # Try to import additional libraries if available
+        try:
+            import wordcloud
+            namespace['wordcloud'] = wordcloud
+            namespace['WordCloud'] = wordcloud.WordCloud
+        except ImportError:
+            pass
+        
+        try:
+            import networkx as nx
+            namespace['networkx'] = nx
+            namespace['nx'] = nx
+        except ImportError:
+            pass
+        
+        try:
+            import pandas as pd
+            namespace['pd'] = pd
+            namespace['pandas'] = pd
+        except ImportError:
+            pass
+        
+        try:
+            import scipy
+            namespace['scipy'] = scipy
+        except ImportError:
+            pass
+        
+        try:
+            from mpl_toolkits.mplot3d import Axes3D
+            namespace['Axes3D'] = Axes3D
+        except ImportError:
+            pass
+        
         # Execute the code
         exec(code, namespace)
         
+        # Check for WordCloud objects in namespace (they need special handling)
+        wordcloud_objects = []
+        for key, value in namespace.items():
+            if hasattr(value, '__class__') and 'WordCloud' in str(type(value)):
+                try:
+                    # Convert WordCloud to image
+                    img_array = value.to_array()
+                    if img_array is not None:
+                        wordcloud_objects.append(img_array)
+                except:
+                    pass
+        
         # Check if there are any open figures
         fig_nums = plt.get_fignums()
+        
+        # If we have wordcloud objects but no figures, create a figure from wordcloud
+        if wordcloud_objects and not fig_nums:
+            for wc_img in wordcloud_objects:
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.imshow(wc_img, interpolation='bilinear')
+                ax.axis('off')
+                plt.tight_layout(pad=0)
+            # Update fig_nums after creating wordcloud figures
+            fig_nums = plt.get_fignums()
         
         if fig_nums:
             # Capture figures directly to memory (BytesIO) - NO LOCAL FILES

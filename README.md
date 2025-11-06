@@ -3,7 +3,8 @@
 ---
 
 
-## 📊 Chart Generator Agen
+## 📊 Chart Generator Agent
+
 
 Transform your data visualization needs into beautiful charts with just a simple chat message. The Chart Generator Agent leverages ASI 1 LLM to generate Python code and creates stunning visualizations using matplotlib, all executed securely and displayed directly in your chat interface.
 

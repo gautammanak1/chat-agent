@@ -9,4 +9,5 @@ networkx
 scipy
 pandas
 matplotlib-venn
+squarify
 

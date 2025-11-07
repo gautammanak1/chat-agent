@@ -387,8 +387,8 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
             ctx.logger.info(f"Text message from {sender}: {user_prompt}")
 
             # Send initial processing message
-            processing_msg = create_text_chat("🔄 Processing your request... Generating chart code with ASI 1...")
-            await ctx.send(sender, processing_msg)
+            # processing_msg = create_text_chat("🔄 Processing your request... Generating chart code with ASI 1...")
+            # await ctx.send(sender, processing_msg)
 
             # Get API key
             api_key = os.getenv("ASI_ONE_API_KEY")
